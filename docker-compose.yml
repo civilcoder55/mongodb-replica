@@ -1,0 +1,96 @@
+version: '3.9'
+
+services: 
+    mongo-replica-setup:
+        container_name: mongo-setup
+        image: 'mongo'
+        restart: on-failure
+        networks:
+            - replNetwork
+        volumes:
+        - ./scripts/mongosetup.sh:/scripts/mongosetup.sh
+        entrypoint: ["bash", "/scripts/mongosetup.sh" ]
+        env_file:
+            - .env
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+        depends_on:
+        - mongo1
+        - mongo2
+        - mongo3
+
+    mongo1:
+        hostname: 'mongo1'
+        container_name: 'mongo1'
+        image: 'mongo'
+        restart: 'on-failure'
+        command: ["--port", "30001", "--keyFile", "/auth/file.key", "--replSet", "rs0", "--bind_ip_all"]
+        expose: 
+            - 30001
+        ports: 
+            - 30001:30001 
+        networks: 
+            - replNetwork
+        volumes:
+            - ./data1:/data/db
+            - ./scripts/initdb.d/:/docker-entrypoint-initdb.d/
+            - ./scripts/file.key:/auth/file.key
+        env_file:
+            - .env
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+            MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+
+    mongo2:
+        hostname: 'mongo2'
+        container_name: 'mongo2'
+        image: 'mongo'
+        command: ["--port", "30002", "--keyFile", "/auth/file.key", "--replSet", "rs0", "--bind_ip_all"]
+        restart: 'on-failure'
+        expose: 
+            - 30002
+        ports: 
+            - 30002:30002  
+        networks: 
+            - replNetwork
+        volumes:
+            - ./data2:/data/db
+            - ./scripts/file.key:/auth/file.key
+        env_file:
+            - .env
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+            MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+        depends_on: 
+            - mongo1
+
+    mongo3:
+        hostname: 'mongo3'
+        container_name: 'mongo3'
+        image: 'mongo'
+        command: ["--port", "30003", "--keyFile", "/auth/file.key", "--replSet", "rs0", "--bind_ip_all"]
+        restart: 'on-failure'
+        expose: 
+            - 30003
+        ports: 
+            - 30003:30003  
+        networks: 
+            - replNetwork
+        volumes:
+            - ./data3:/data/db
+            - ./scripts/file.key:/auth/file.key
+        env_file:
+            - .env
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+            MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+            MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+        depends_on: 
+            - mongo1
+
+
+networks: 
+    replNetwork:
